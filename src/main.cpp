@@ -1,51 +1,64 @@
-#include<stdio.h>
+// Copyright 2024 Me
 
-#include<SFML/Window.hpp>
-#include<SFML/Graphics.hpp>
+#include <SFML/Graphics.hpp>
+#include <SFML/Window.hpp>
+#include <entt/entt.hpp>
 
-#include<entt/entt.hpp>
-
-struct Position {
-    float x;
-    float y;
+struct Color {
+  sf::Color color;
 };
 
-int main()
-{
-    sf::RenderWindow window(sf::VideoMode(640, 360), "My window");
-    // If key repeat is not disabled, then the key will repeat at a frequency determined by the OS,
-    // which is not practical for this code to predict.
-    window.setKeyRepeatEnabled(false);
-    auto main_registry{ entt::registry{} };
+struct RectangleBody {
+  float width;
+  float height;
+};
 
-    auto player_entity = main_registry.create();
-    main_registry.assign<Position>(player_entity);
+struct Position {
+  float x;
+  float y;
+};
 
-    sf::RectangleShape rectangle(sf::Vector2(80.f, 50.f));
-    rectangle.setPosition(10.5, 50.f);
-    rectangle.setFillColor(sf::Color::Red);
+int main() {
+  sf::RenderWindow window(sf::VideoMode(640, 360), "My window");
+  // If key repeat is not disabled, then the key will repeat at a frequency
+  // determined by the OS, which is not practical for this code to predict.
+  window.setKeyRepeatEnabled(false);
 
-    bool quit{ false };
-    while (!quit)
-    {
+  entt::registry registry;
 
-        // check all the window's events that were triggered since the loop's last iteration
-        sf::Event event;
-        while (window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-            {
-                window.close();
-                quit = true;
-            }
-        }
+  auto paddle = registry.create();
+  registry.emplace<Color>(paddle, sf::Color::Blue);
+  registry.emplace<RectangleBody>(paddle, 80.f, 40.f);
+  registry.emplace<Position>(paddle, 100.f, 200.f);
 
-        window.clear(sf::Color::Black);
-
-        window.draw(rectangle);
-
-        window.display();
+  bool quit{false};
+  while (!quit) {
+    // check all the window's events that were triggered since the loop's last
+    // iteration
+    sf::Event event;
+    while (window.pollEvent(event)) {
+      if (event.type == sf::Event::Closed) {
+        window.close();
+        quit = true;
+      }
     }
 
-    return 0;
+    window.clear(sf::Color::Black);
+
+    auto rectangles =
+        registry.view<const Position, const RectangleBody, const Color>();
+
+    rectangles.each([&window](const auto &position, const auto &rectangleBody,
+                              const auto &color) {
+      sf::RectangleShape rectangle(
+          sf::Vector2f(rectangleBody.width, rectangleBody.height));
+      rectangle.setFillColor(color.color);
+      rectangle.setPosition(position.x, position.y);
+      window.draw(rectangle);
+    });
+
+    window.display();
+  }
+
+  return 0;
 }
